@@ -1,0 +1,58 @@
+# k8s/neo4j-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: neo4j
+spec:
+  serviceName: neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      containers:
+        - name: neo4j
+          image: neo4j-custom:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 7474
+              name: http
+            - containerPort: 7687
+              name: bolt
+          env:
+            - name: NEO4J_dbms_memory_pagecache_size
+              value: "2G"
+            - name: NEO4J_dbms_memory_heap_initial_size
+              value: "512M"
+            - name: NEO4J_dbms_memory_heap_max_size
+              value: "1G"
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-auth
+                  key: NEO4J_AUTH
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+            - name: neo4j-logs
+              mountPath: /logs
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: neo4j-logs
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
